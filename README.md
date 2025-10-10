@@ -1,4 +1,4 @@
-# rhoai-mnist
+# Red Hat OpenShift AI and MNIST Image Recognition
 Building MNIST image recognition with Red Hat OpenShift AI. This hello word dataset and CNN model is a collection of handwritten digits between 0-9. A web app with a drawing canvas captures a hand drawn digit, and infers from the model as to what the digit is.
 
 ## Source the MNIST Image data
