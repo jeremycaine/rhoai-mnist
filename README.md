@@ -18,70 +18,121 @@ Red Hat OpenShift AI
 - Data science projects
     - project: jeremycaine-dev
 
+## Create a Data Science Project workbench
+Red Hat OpenShift AI
+- Data science projects
+    - Project: jeremycaine-dev
+        - Workbenches > Create Workbench > `mnist-workbench`
+    - Image: `Jupyter | TensorFlow | CUDA | Python 3.12`, py 3.12`
+    - Container Size: Small
+    - "Create workbench"
 
-## Create Object Storage
+We will come back to update this with a connection to the object storage.
+
+Launch the workbench.
+
+## Create the Object Storage
 We will create a MinIO object storage bucket and connect our OpenShift cluster to it. The steps to do this were originally taken from [here](https://developers.redhat.com/learning/learn:openshift-ai:automate-ml-pipeline-openshift-ai/resource/resources:set-and-execute-pipeline)
 
+Back in the Red Hat OpenShift AI console, go to the top right 3x3 square and launch the OpenShift Console.
 
-
-put mnist csv files in minio
-
-Minio
-Taken from 
-
-3x3 top right
-Red Hat OpenShift Console
+Red Hat OpenShift
 - open terminal `>_`
 ```
-git clone https://github.com/utherp0/aipipeline1
-cd aipipeline1
+git clone https://github.com/jeremycaine/rhoai-mnist
+cd rhoai-mnist/build-and-deploy/
 oc create -f minio.yaml
 ```
+This creates the MinIO deployment, the persistent volume claim and various Kubernetes objects to attach the object storage to the cluster.
+
+## Upload the MNIST data files
+We will load the data files we got from Kaggle into a MinIO bucket.
+
+Launch MinIO from with in the Red Hat OpenShift (Service on AWS)
+
+Red Hat OpenShift
 - Networking > Routes
-- select jeremycaine-dev project
-- Route minio-ui > Location URL for console
-- u/p: miniosandbox
-- create bucket: mnist-pipeline
-- create a new path (folde): data
-- upload MNIST files
+- select `jeremycaine-dev`project
+- Route `minio-ui` > Location URL for console
+- In the MinIO app
+- Username and password: `miniosandbox`
+- Create bucket: `mnist-ml`
+- Create a new path (folde): `data`
+- upload the two MNIST CSV files
 
-Create a connection to Minio in workbench
-- connection type: S3 compatible
-- connection name: conn-minio
-- access and secret keys: miniosandbox
-- bucket name: mnist-pipeline
+Also create a simple text file e.g. `hello.txt` and load it into the `data` folder.
 
-## OpenShift Container Platform
-We need to create external environment variables in the cluster for the OpenShift AI project to reference e.g. interacting with the MinIO object storage.
+Note the Route `minio-api` Location URL.
 
-## data science
-Red Hat OpenShift AI
-- Data Science Projects > jeremycaine-dev (assigned by Sandbox)
-- Workbenches > Create Workbench > rhoai-mnist
-    - image: Data science, py 3.12
-    - container size: small
-    - attach connection - conn-minio -s3 - minio
-    - Environment Variables
-        - MINIO_HOST: minio-api-utherp0-dev.apps.rm1.0a51.p1.openshiftapps.com
-        - MINIO_USER: miniosandbox
-        - MINIO_PWD: miniosandbox
+## Update the Workbench
+Go to Red Hat OpenShift AI
+- Data science project > `jeremycaine-dev`
+    - Workbench: `mnist-workbench` > three dots - Edit Workbench
+    - Create a Connection
+        - S3 connection type
+        - Name: `conn-minio`
+        - Access and Secret Keys: `miniosandbox`
+        - Region: `us-east-1`
+        - Bucket Name: `mnist-ml`
+    - "Update workbench"
 
+Open VINO Model Server embeds the AWS S3 SDK to make its S3 connections to different object storage. The AWS S3 SDK used by OVMS requires a non-empty region value for signing and endpoint formatting `us-east-1` is the only one that historically works without needing special endpoint signing rules.
 
+## Clone the Git repo into the workbench
+In JupyterHub
+- Git
+- Clone a Repository (include subfolders; but no need to download)
+    - https://github.com/jeremycaine/rhoai-mnist
 
-## Notebooks
-Launch workbench, now in Jupyter Lab
-Create notebooks
+Now in the JupyterHub file browser, you'll see the repo files.
 
+## Train the model
+Open up the notebook `build-and-deploy/train-model.ipynb`
 
+You can run piece by piece to see the TensorFlow model building or do the whole thing. At the end of the training we upload the model in Keras format to object storage, and convert it to ONNX format and upload that.
 
-## pipeline
+## Create a model server
+The goal has been to deploy the model to the OpenShift AI platform model serving functions. There are a variety of these including Generative AI model serving.
 
-## model server
+In the sandbox environment there is one type available Open VINO Model Server (OVMS).
 
+Go to Red Hat OpenShift AI
+- Data science project > `jeremycaine-dev`
+    - Models
+        - Add Model Server
+            - Moder server name: `mnist-model-server`
+            - Serving runtime: OpenVINO Model Server (only option in sandbox)
+            - Number of replicas: 1 is fine for this experiment
+            - Model server size: Small 
+            - Model route: make it external
+            - Token authentication: leave this off for now.
 
-## app in openshift cluster
-can it all be done in sandbox?
+Token authentication is the secure recommendation. A Bearer token is required in the HTTPS call to the model endpoint URL.
 
-## routes
-curl -vk https://minio-api-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/minio/health/ready = ok
+## Deploy a model
+The OpenVINO Model Server has been configured in the sandbox with 'Multi-model serving enabled'. For production platforms requiring different scale of inference you can have single model serving enabled and optimise specifically for one model.
+
+Now we can deploy model to the model server. We have two model formats in our object storage `.keras` and `.onnx`.
+
+Go to Red Hat OpenShift AI
+- Models
+    - Model Deployment
+        - Deploy Model
+            - Model deployment name: e.g. `mnist-onnx`
+            - Model server will be picked
+            - Model framework e.g. `onnx - 1` for ONNX, and `tensorflow - 2` for Keras
+            - Connection - existing connection
+            - "Deploy"
+
+You can use the existing one for the model server to connect to the model file. Again in production environment you will probably have a more sophisticated setup an dedicated secured connection for serving the models for throughput and performance reasones.
+
+## Model
+Once the models are started you have internal and external facing endpoints. Clicking on that hotlink will reveal the URIs.
+
+Internal (accessible only from inside the cluster)
+- grpcUrl: grpc://modelmesh-serving.jeremycaine-dev:8033
+- restUrl: http://modelmesh-serving.jeremycaine-dev:8008
+
+External (accessible from inside or outside the cluster)
+- https://mnist-keras-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-keras/infer
 
