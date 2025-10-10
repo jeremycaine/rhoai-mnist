@@ -5,12 +5,11 @@ FROM registry.access.redhat.com/ubi8/python-39
 
 ## Add application sources
 WORKDIR /app
-COPY src/requirements.txt ./
 
-# Install the dependencies
-RUN pip install -U "pip>=19.3.1" && \
-    pip install tensorflow \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python deps first (better layer caching)
+COPY src/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -U "pip>=21.0" && \
+    pip install --no-cache-dir -r /app/requirements.txt
 
 ## 2. Non-root, arbitrary user IDs
 USER 1001

@@ -16,12 +16,12 @@ Go to the 'Try it' for OpenShift AI. It automatically creates you a project name
 Red Hat OpenShift AI
 - Home
 - Data science projects
-    - project: jeremycaine-dev
+    - project: `jeremycaine-dev`
 
 ## Create a Data Science Project workbench
 Red Hat OpenShift AI
 - Data science projects
-    - Project: jeremycaine-dev
+    - Project: `jeremycaine-dev`
         - Workbenches > Create Workbench > `mnist-workbench`
     - Image: `Jupyter | TensorFlow | CUDA | Python 3.12`, py 3.12`
     - Container Size: Small
@@ -37,7 +37,7 @@ We will create a MinIO object storage bucket and connect our OpenShift cluster t
 Back in the Red Hat OpenShift AI console, go to the top right 3x3 square and launch the OpenShift Console.
 
 Red Hat OpenShift
-- open terminal `>_`
+- Open terminal `>_`
 ```
 git clone https://github.com/jeremycaine/rhoai-mnist
 cd rhoai-mnist/build-and-deploy/
@@ -77,6 +77,14 @@ Go to Red Hat OpenShift AI
     - "Update workbench"
 
 Open VINO Model Server embeds the AWS S3 SDK to make its S3 connections to different object storage. The AWS S3 SDK used by OVMS requires a non-empty region value for signing and endpoint formatting `us-east-1` is the only one that historically works without needing special endpoint signing rules.
+
+The creation of this connection automatically sets the environment variables you will use in the code to access the bucket. They are:
+
+- AWS_S3_ENDPOINT
+- AWS_S3_BUCKET
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+- AWS_DEFAULT_REGION
 
 ## Clone the Git repo into the workbench
 In JupyterHub
@@ -126,7 +134,7 @@ Go to Red Hat OpenShift AI
 
 You can use the existing one for the model server to connect to the model file. Again in production environment you will probably have a more sophisticated setup an dedicated secured connection for serving the models for throughput and performance reasones.
 
-## Model
+## Model endpoint
 Once the models are started you have internal and external facing endpoints. Clicking on that hotlink will reveal the URIs.
 
 Internal (accessible only from inside the cluster)
@@ -135,4 +143,24 @@ Internal (accessible only from inside the cluster)
 
 External (accessible from inside or outside the cluster)
 - https://mnist-keras-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-keras/infer
+
+
+## Deploy an app to use the model
+We have an image recognition web app. It takes a HTML canvas where you can use the mouse to hand draw anything. On submit, it calls the model inference and attempts to classify what is drawn against a digit from 0-9.
+
+Red Hat OpenShift Console
+- top right (+)
+- Import from Git
+    - Git repo URL: https://github.com/jeremycaine/rhoai-mnist
+    - Context dir: image-rec-app
+    - Import strategy: Dockerfile (it finds `src` dir and Dockerfile and self-selects)
+    - Application name: overwrite with with what is auto-generated e.g. `image-rec-app-app` to `image-rec-app`
+    - Build - leave as is
+    - Deploy - resource type can be Serverless Deployment
+        - set an env var for the deployment e.g.
+        - OVMS_URL = https://mnist-onxx-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-onxx/infer
+    - Target port: e.g. 8080
+    - "Create"
+
+The Build process now begins. The Route is created to the app.
 
