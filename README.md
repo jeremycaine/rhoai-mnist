@@ -156,11 +156,18 @@ Red Hat OpenShift Console
     - Import strategy: Dockerfile (it finds `src` dir and Dockerfile and self-selects)
     - Application name: overwrite with with what is auto-generated e.g. `image-rec-app-app` to `image-rec-app`
     - Build - leave as is
-    - Deploy - resource type can be Serverless Deployment
+    - Deploy - resource type: Deployment
+        - app name: `rhoai-mnist-app`
         - set an env var for the deployment e.g.
-        - OVMS_URL = https://mnist-onxx-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-onxx/infer
+        - OVMS_URL = https://mnist-onxx-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-onxx/infer 
     - Target port: e.g. 8080
     - "Create"
 
 The Build process now begins. The Route is created to the app.
 
+Once complete check Workload > Deployments e.g. `rhoai-mnist-app`
+
+Then in Networking > Routes you will find the route URL
+e.g. https://rhoai-mnist-app-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com 
+
+Go to the web app and test !

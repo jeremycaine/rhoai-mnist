@@ -11,7 +11,7 @@ app = flask.Flask(__name__)
 # OVMS REST v2 inference endpoint
 OVMS_URL = os.getenv(
     "OVMS_URL",
-    "https://mnist-image-model-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-image-model/infer",
+    "https://mnist-onxx-jeremycaine-dev.apps.rm2.thpm.p1.openshiftapps.com/v2/models/mnist-onxx/infer",
 )
 
 SA_TOKEN_PATH = os.getenv(
